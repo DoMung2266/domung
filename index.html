@@ -2,186 +2,75 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>Bảng tính khối gỗ & giá tiền</title>
+  <title>Tính khối gỗ & giá tiền</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body {
-      font-family: sans-serif;
-      padding: 16px;
-      box-sizing: border-box;
-      max-width: 90%;
-    }
-    h2 {
-      font-size: 1.0em;
-      margin-bottom: 20px;
-    }
-    .row {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-    label {
-      flex: 1 0 160px;
-      margin-bottom: 4px;
-    }
-    input {
-      flex: 1 0 160px;
-      padding: 6px;
-      font-size: 1em;
-    }
-    .result-inline {
-      font-weight: bold;
-      color: #333;
-      flex: 1 0 100%;
-      margin-top: 4px;
-    }
-    button {
-      padding: 10px 20px;
-      font-size: 1em;
-      width: 99%;
-      max-width: 300px;
-      margin: 16px 0;
-    }
-    table {
-      width: 99%;
-      border-collapse: collapse;
-      font-size: 0.9em;
-      margin-top: 20px;
-    }
-    th, td {
-      border: 1px solid #888;
-      padding: 8px 4px;
-      text-align: center;
-    }
-    th {
-      background-color: #f2f2f2;
-    }
+    body { font-family: sans-serif; padding: 16px; max-width: 800px; margin: auto; }
+    h2 { font-size: 1.2em; margin-bottom: 16px; text-align: center; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 0.95em; }
+    th, td { border: 1px solid #888; padding: 6px; text-align: center; }
+    input[type="number"], input[type="text"] { width: 80px; padding: 4px; font-size: 1em; text-align: center; }
+    input.quantity { width: 60px; }
+    .controls { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
+    button { padding: 8px 16px; font-size: 1em; cursor: pointer; }
+    .result { font-weight: bold; margin: 8px 0; font-size: 1em; color: #333; text-align: center; }
+    .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+    .row input { flex: 1; max-width: 150px; }
   </style>
 </head>
 <body>
-  <h2>Bảng tính khối gỗ & giá tiền</h2>
+  <h2>📐 Nhập chi tiết – Tính khối gỗ & giá tiền</h2>
 
-  <div class="row">
-  <div style="flex: 1 0 20%; text-align: center;">
-    <label for="length">Dài (mm)</label><br>
-    <input type="number" id="length" placeholder="250">
-  </div>
-  <div style="flex: 1 0 20%; text-align: center;">
-    <label for="width">Rộng (mm)</label><br>
-    <input type="number" id="width" placeholder="120">
-  </div>
-  <div style="flex: 1 0 20%; text-align: center;">
-    <label for="height">Cao (mm)</label><br>
-    <input type="number" id="height" placeholder="20">
-  </div>
- </div>
-
-  <div class="row">
-    <label>Giá dự kiến sản phẩm:</label>
-    <input type="text" id="unitPrice" oninput="formatMoneyInput(this)" placeholder="nhập ở đây (giá dự kiến sản phẩm)">
-    <span class="result-inline" id="totalPriceOutput"></span>
+  <div class="controls">
+    <button onclick="addRow()">➕ Thêm chi tiết</button>
+    <button onclick="clearTable()">🧹 Xóa tất cả</button>
   </div>
 
-  <div class="row">
-    <label>Giá dự kiến 1 khối gỗ:</label>
-    <input type="text" id="blockPrice" oninput="formatMoneyInput(this)" placeholder="nhập ở đây (giá dự kiến 1 khối gỗ)">
-    <span class="result-inline" id="pricePerUnitOutput"></span>
-  </div>
-
-  <button onclick="calculate()">Tính</button>
-
-  <div class="results">
-    <div class="result-inline" id="volumeOutput"></div>
-    <div class="result-inline" id="quantityOutput"></div>
-  </div>
-
-  <table id="historyTable">
+  <table id="woodTable">
     <thead>
       <tr>
-        <th>Dài</th><th>Rộng</th><th>Cao</th><th>Số khối</th>
-        <th>Số SP</th><th>Giá/SP</th><th>Giá/Khối</th><th>Giá 1 SP</th><th>Giá / Khối gỗ</th>
+        <th>STT</th><th>Dài</th><th>Rộng</th><th>Cao</th><th>Nhân lên</th><th>Số khối (m³)</th><th>🗑️</th>
       </tr>
     </thead>
     <tbody></tbody>
   </table>
 
-  <script>
-    function formatMoneyInput(input) {
-      let raw = input.value.replace(/[^\d]/g, "");
-      if (raw === "") {
-        input.value = "";
-        return;
-      }
-      input.value = parseInt(raw).toLocaleString("vi-VN");
-    }
+  <div class="result" id="totalOutput">🔢 Tổng số khối: 0 m³ | 📦 Số sản phẩm / 1 khối: 0</div>
 
-    function parseMoney(inputValue) {
-      return parseInt(inputValue.replace(/[^\d]/g, ""));
-    }
+  <div class="row">
+    <label>💰 Giá tiền 1 sản phẩm:</label>
+    <input type="text" id="pricePerProduct" oninput="trackChange('product'); formatMoneyInput(this)" placeholder="VD: 30.000">
+  </div>
 
-    function calculate() {
-      const length = parseFloat(document.getElementById("length").value);
-      const width = parseFloat(document.getElementById("width").value);
-      const height = parseFloat(document.getElementById("height").value);
-      const unitPrice = parseMoney(document.getElementById("unitPrice").value);
-      const blockPrice = parseMoney(document.getElementById("blockPrice").value);
+  <div class="row"> 
+    <label>💰 Giá tiền 1 khối gỗ:</label>
+    <input type="text" id="pricePerKhối" oninput="trackChange('block'); formatMoneyInput(this)" placeholder="VD: 50.000.000">
+  </div>
 
-      const volumeOutput = document.getElementById("volumeOutput");
-      const quantityOutput = document.getElementById("quantityOutput");
-      const totalPriceOutput = document.getElementById("totalPriceOutput");
-      const pricePerUnitOutput = document.getElementById("pricePerUnitOutput");
+  <div class="row" style="justify-content: flex-end;">
+    <button onclick="calculateTotal()">📐 Tính tổng</button>
+  </div>
 
-      if (!length || !width || !height) {
-        volumeOutput.innerText = "❌ Vui lòng nhập đủ 3 kích thước!";
-        quantityOutput.innerText = "";
-        totalPriceOutput.innerText = "";
-        pricePerUnitOutput.innerText = "";
-        return;
-      }
+  <h3>📋 Bảng kết quả chi tiết</h3>
+  <div class="row" style="justify-content: flex-end;">
+    <button onclick="clearPriceTable()">🧹 Xóa bảng kết quả</button>
+  </div>
 
-      const volume = (length / 1000) * (width / 1000) * (height / 1000);
-      const quantity = volume > 0 ? (1 / volume) : 0;
+  <table id="priceTable">
+    <thead>
+      <tr>
+        <th>Giá 1 sản phẩm (₫)</th>
+        <th>Giá 1 khối gỗ (₫)</th>
+        <th>Dài (mm)</th>
+        <th>Rộng (mm)</th>
+        <th>Cao (mm)</th>
+        <th>Nhân lên</th>
+        <th>Số sản phẩm</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
-      volumeOutput.innerText = `🔢 Số khối: ${volume.toFixed(6)} m³`;
-      quantityOutput.innerText = `📦 Số sản phẩm: ${quantity.toFixed(2)} sản phẩm`;
-
-      if (unitPrice) {
-        const totalPrice = Math.round(quantity * unitPrice);
-        totalPriceOutput.innerText = `💰 Giá 1 khối: ${totalPrice.toLocaleString("vi-VN")} ₫`;
-      } else {
-        totalPriceOutput.innerText = "";
-      }
-
-      if (blockPrice) {
-        const pricePerUnit = Math.round(blockPrice / quantity);
-        pricePerUnitOutput.innerText = `🧾 Giá 1 sản phẩm: ${pricePerUnit.toLocaleString("vi-VN")} ₫`;
-      } else {
-        pricePerUnitOutput.innerText = "";
-      }
-
-      const tableBody = document.querySelector("#historyTable tbody");
-      const newRow = document.createElement("tr");
-
-      const displayUnitPrice = unitPrice ? unitPrice.toLocaleString("vi-VN") + " ₫" : "-";
-      const displayBlockPrice = blockPrice ? blockPrice.toLocaleString("vi-VN") + " ₫" : "-";
-      const displayTotalPrice = unitPrice ? Math.round(quantity * unitPrice).toLocaleString("vi-VN") + " ₫" : "-";
-      const displayPricePerUnit = blockPrice ? Math.round(blockPrice / quantity).toLocaleString("vi-VN") + " ₫" : "-";
-
-      newRow.innerHTML = `
-        <td>${length || "-"}</td>
-        <td>${width || "-"}</td>
-        <td>${height || "-"}</td>
-        <td>${volume.toFixed(6)}</td>
-        <td>${quantity.toFixed(2)}</td>
-        <td>${displayUnitPrice}</td>
-        <td>${displayTotalPrice}</td>
-        <td>${displayPricePerUnit}</td>
-        <td>${displayBlockPrice}</td>
-      `;
-
-      tableBody.appendChild(newRow);
-    }
-  </script>
+  <script src="main.js"></script>
 </body>
 </html>
